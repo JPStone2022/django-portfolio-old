@@ -1,4 +1,52 @@
 title,slug,description,image_url,results_metrics,challenges,lessons_learned,code_snippet,code_language,github_url,demo_url,paper_url,order,is_featured,long_description_markdown,skills,topics
-Basic Image Analysis,basic-image-analysis,this is news,https://placehold.co/600x400/f97316/FFFFFF?text=Basic+Image+Analysis,none,none,none,none,Python,,,,0,,"stuff should go here","Python,Matplotlib,NumPy",Data Science
-Sales Data Analysis,sales-data-analysis,I am testing this out,https://placehold.co/600x400/f97316/FFFFFF?text=Sales+Data+Analysis,very,hard,lots,none,Python,,,,,1,,"Python,Pandas,NumPy",Data Science
-Data Analysis,data-analysis,I am testing this out,https://placehold.co/600x400/f97316/FFFFFF?text=Sales+Data+Analysis,very,hard,lots,none,Python,,,,,1,,"Python,Pandas,NumPy",Data Science
+Image Classification,image-classification,"Upload an image (like a photo of an animal, object, or scene) and this demo will use the pre-trained MobileNetV2 model to predict what it sees.",https://placehold.co/600x400/f97316/FFFFFF?text=Image+Classifier,,,,"""# 1. Read image content into memory
+                image_bytes = uploaded_image.read()
+
+                # 2. Load image using Keras utils from bytes
+                # Use io.BytesIO to treat the bytes as a file
+                img = keras_image_utils.load_img(io.BytesIO(image_bytes), target_size=(224, 224))
+
+                # 3. Prepare for display (convert original bytes to base64)
+                # Determine image format (optional, but good for data URI)
+                image_format = uploaded_image.content_type.split('/')[-1] # e.g., 'jpeg', 'png'
+                uploaded_image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+                # Prepend the data URI scheme
+                uploaded_image_base64 = f""data:{uploaded_image.content_type};base64,{uploaded_image_base64}""
+
+                # 4. Preprocess for prediction
+                img_array = keras_image_utils.img_to_array(img)
+                img_array_expanded = np.expand_dims(img_array, axis=0)
+                img_preprocessed = preprocess_input(img_array_expanded)
+
+                # 5. Predict
+                predictions = image_model.predict(img_preprocessed)
+                decoded = decode_predictions(predictions, top=3)[0]
+                prediction_results = [{'label': label.replace('_', ' '), 'probability': float(prob) * 100} for (_, label, prob) in decoded]""",Python,,,,0,,,"Python,Matplotlib,NumPy",Data Science
+Sentiment Analysis,sentiment-analysis,"Enter a sentence or paragraph below, and this demo will use a pre-trained DistilBERT model (from Hugging Face Transformers) to predict whether the sentiment is positive or negative.",https://placehold.co/600x400/f97316/FFFFFF?text=Sentiment+Analysis,,,,"""if request.method == 'POST' and TRANSFORMERS_AVAILABLE and SENTIMENT_MODEL_LOADED:
+        form = SentimentAnalysisForm(request.POST)
+        if form.is_valid():
+            submitted_text = form.cleaned_data['text_input']
+            try:
+                # Run text through the pipeline
+                # Check if pipeline object actually exists before calling
+                if sentiment_pipeline:
+                    results = sentiment_pipeline(submitted_text)
+                    if results:
+                        sentiment_result = results[0] # Get the first result dictionary
+                        sentiment_result['score'] = round(sentiment_result['score'] * 100, 1)""",Python,,,,,1,,"Python,Pandas,NumPy",Data Science
+Data Wrangling,data-wrangling,"Upload a small CSV file (with headers) to see some common data wrangling steps applied, such as handling missing values, renaming columns, and creating a new feature",https://placehold.co/600x400/f97316/FFFFFF?text=Data+Wrangler,,,,"""# Read CSV
+                    df = pd.read_csv(csv_file)
+                    original_head_html = df.head().to_html(classes='w-full text-sm text-left text-gray-500 dark:text-gray-400', border=0, index=False)
+                    original_columns = df.columns.tolist()
+                    original_shape = df.shape
+
+                    # --- Apply Wrangling Steps ---
+                    steps_applied = []
+                    df_wrangled = df.copy() # Work on a copy
+
+                    # 1. Handle Missing Numerical Values (Example: fill with median)
+                    numeric_cols = df_wrangled.select_dtypes(include=np.number).columns
+                    for col in numeric_cols:
+                        if df_wrangled[col].isnull().any():
+                            median_val = df_wrangled[col].median()
+                            df_wrangled[col].fillna(median_val, inplace=True)""",Python,,,,,2,,"Python,Pandas,NumPy",Data Science
