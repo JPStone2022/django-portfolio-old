@@ -49,4 +49,4 @@ Data Wrangling,data-wrangling,"Upload a small CSV file (with headers) to see som
                     for col in numeric_cols:
                         if df_wrangled[col].isnull().any():
                             median_val = df_wrangled[col].median()
-                            df_wrangled[col].fillna(median_val, inplace=True)""",Python,,,,,2,,"Python,Pandas,NumPy",Data Science
+                            df_wrangled[col].fillna(median_val, inplace=True)""",Python,,,,,1,,"Python,Pandas,NumPy",Data Science
