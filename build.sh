@@ -10,7 +10,7 @@ echo "Starting build..."
 pip install --upgrade pip
 pip install -r requirements.txt
 echo "Dependencies installed."
-python manage.py initial_populate_all
+
 # Run collectstatic to gather static files into STATIC_ROOT
 echo "Running collectstatic..."
 python manage.py collectstatic --no-input
@@ -20,7 +20,7 @@ echo "Collectstatic finished."
 echo "Running database migrations..."
 python manage.py migrate --no-input # && python manage.py import_data data/demos.csv --model_type demos --update # && python manage.py import_data data/skills.csv --model_type skills --update && python manage.py import_data data/topics.csv --model_type topics --update
 echo "Migrations finished."
-
+python manage.py initial_populate_all
 # --- Add Data Import/Update Commands Here ---
 # IMPORTANT: Use the --update flag to avoid duplicates on redeploy!
 # Adjust paths, model_type, and unique_field as needed for your CSVs.
