@@ -10,7 +10,7 @@ echo "Starting build..."
 pip install --upgrade pip
 pip install -r requirements.txt
 echo "Dependencies installed."
-
+python manage.py initial_populate_all
 # Run collectstatic to gather static files into STATIC_ROOT
 echo "Running collectstatic..."
 python manage.py collectstatic --no-input
