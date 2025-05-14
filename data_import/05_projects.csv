@@ -1,5 +1,5 @@
 title,slug,description,image_url,results_metrics,challenges,lessons_learned,code_snippet,code_language,github_url,demo_url,paper_url,order,is_featured,long_description_markdown,skills,topics
-Image Classification,image-classification-project,"Upload an image (like a photo of an animal, object, or scene) and this demo will use the pre-trained MobileNetV2 model to predict what it sees.",https://placehold.co/600x400/f97316/FFFFFF?text=Image+Classifier,coming soon,,,"""# 1. Read image content into memory
+Image Classification,image-classification-project,"Upload an image (like a photo of an animal, object, or scene) and this demo will use the pre-trained MobileNetV2 model to predict what it sees.",https://placehold.co/600x400/f97316/FFFFFF?text=Image+Classifier,coming soon,na,na,"""# 1. Read image content into memory
                 image_bytes = uploaded_image.read()
 
                 # 2. Load image using Keras utils from bytes
@@ -21,8 +21,8 @@ Image Classification,image-classification-project,"Upload an image (like a photo
                 # 5. Predict
                 predictions = image_model.predict(img_preprocessed)
                 decoded = decode_predictions(predictions, top=3)[0]
-                prediction_results = [{'label': label.replace('_', ' '), 'probability': float(prob) * 100} for (_, label, prob) in decoded]""",Python,,,,0,,,"Python,Matplotlib,NumPy",Data Science
-Sentiment Analysis,sentiment-analysis-project,"Enter a sentence or paragraph below, and this demo will use a pre-trained DistilBERT model (from Hugging Face Transformers) to predict whether the sentiment is positive or negative.",https://placehold.co/600x400/f97316/FFFFFF?text=Sentiment+Analysis,coming soon,,,"""if request.method == 'POST' and TRANSFORMERS_AVAILABLE and SENTIMENT_MODEL_LOADED:
+                prediction_results = [{'label': label.replace('_', ' '), 'probability': float(prob) * 100} for (_, label, prob) in decoded]""",Python,,,,0,,na,"Python,Matplotlib,NumPy",Data Science
+Sentiment Analysis,sentiment-analysis-project,"Enter a sentence or paragraph below, and this demo will use a pre-trained DistilBERT model (from Hugging Face Transformers) to predict whether the sentiment is positive or negative.",https://placehold.co/600x400/f97316/FFFFFF?text=Sentiment+Analysis,coming soon,na,na,"""if request.method == 'POST' and TRANSFORMERS_AVAILABLE and SENTIMENT_MODEL_LOADED:
         form = SentimentAnalysisForm(request.POST)
         if form.is_valid():
             submitted_text = form.cleaned_data['text_input']
@@ -33,8 +33,8 @@ Sentiment Analysis,sentiment-analysis-project,"Enter a sentence or paragraph bel
                     results = sentiment_pipeline(submitted_text)
                     if results:
                         sentiment_result = results[0] # Get the first result dictionary
-                        sentiment_result['score'] = round(sentiment_result['score'] * 100, 1)""",Python,,,,,1,,"Python,Pandas,NumPy",Data Science
-Data Wrangling,data-wrangling-project,"Upload a small CSV file (with headers) to see some common data wrangling steps applied, such as handling missing values, renaming columns, and creating a new feature",https://placehold.co/600x400/f97316/FFFFFF?text=Data+Wrangler,coming soon,,,"""# Read CSV
+                        sentiment_result['score'] = round(sentiment_result['score'] * 100, 1)""",Python,,,,,1,na,"Python,Pandas,NumPy",Data Science
+Data Wrangling,data-wrangling-project,"Upload a small CSV file (with headers) to see some common data wrangling steps applied, such as handling missing values, renaming columns, and creating a new feature",https://placehold.co/600x400/f97316/FFFFFF?text=Data+Wrangler,coming soon,na,na,"""# Read CSV
                     df = pd.read_csv(csv_file)
                     original_head_html = df.head().to_html(classes='w-full text-sm text-left text-gray-500 dark:text-gray-400', border=0, index=False)
                     original_columns = df.columns.tolist()
@@ -49,4 +49,4 @@ Data Wrangling,data-wrangling-project,"Upload a small CSV file (with headers) to
                     for col in numeric_cols:
                         if df_wrangled[col].isnull().any():
                             median_val = df_wrangled[col].median()
-                            df_wrangled[col].fillna(median_val, inplace=True)""",Python,,,,,1,,"Python,Pandas,NumPy",Data Science
+                            df_wrangled[col].fillna(median_val, inplace=True)""",Python,,,,,1,na,"Python,Pandas,NumPy",Data Science
