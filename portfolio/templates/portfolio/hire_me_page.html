@@ -90,7 +90,7 @@
                 {% endif %}
                 {% if user_profile.cv_url %} {# Or link to your cv_page if you have one #}
                 <p>
-                    <a href="{{ user_profile.cv_url }}"
+                    <a href="{% url 'portfolio:cv' %}"
                        aria-label="View {{ user_profile.full_name|default:'my' }} CV"
                        target="_blank" rel="noopener"
                        class="text-blue-600 dark:text-blue-400 hover:underline focus:outline-none focus:ring-1 focus:ring-blue-500 rounded">

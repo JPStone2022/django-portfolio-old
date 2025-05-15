@@ -37,6 +37,8 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.db.models import Q 
 from django.utils.text import Truncator
+from datetime import datetime, timedelta # For timestamp check
+import smtplib # For more specific SMTP exceptions
 
 FEATURED_ITEMS_COUNT = 6
 
@@ -94,6 +96,108 @@ def index(request):
         'featured_demos': featured_demos,
     }
     return render(request, 'portfolio/index.html', context)
+
+# If using django-ratelimit, you would import and use its decorator
+from django_ratelimit.decorators import ratelimit
+
+# Example rate limit: 5 submissions per hour per IP for the contact form
+@ratelimit(key='ip', rate='5/h', block=True, method='POST')
+def contact_view(request):
+    if request.method == 'POST':
+        form = ContactForm(request.POST)
+        if form.is_valid():
+            # --- Spam Checks ---
+            # 1. Honeypot (already in form.cleaned_data if field exists)
+            if form.cleaned_data.get('honeypot'):
+                logger.warning(f"Honeypot triggered for contact form. IP: {request.META.get('REMOTE_ADDR')}")
+                messages.error(request, 'Submission failed. Please try again.') # Generic message
+                # You could also just redirect without a message to make it less obvious to bots
+                return redirect('portfolio:contact')
+
+            # 2. Timestamp check
+            form_load_time_str = form.cleaned_data.get('form_load_time')
+            minimum_submission_time_seconds = 3 # Adjust as needed
+
+            if form_load_time_str:
+                try:
+                    form_load_dt = datetime.fromisoformat(form_load_time_str)
+                    # Ensure form_load_dt is offset-aware if timezone.now() is
+                    if timezone.is_aware(timezone.now()) and timezone.is_naive(form_load_dt):
+                        form_load_dt = timezone.make_aware(form_load_dt, timezone.get_default_timezone())
+                    
+                    time_diff = timezone.now() - form_load_dt
+                    if time_diff < timedelta(seconds=minimum_submission_time_seconds):
+                        logger.warning(f"Form submitted too quickly ({time_diff.total_seconds()}s). Possible spam. IP: {request.META.get('REMOTE_ADDR')}")
+                        messages.error(request, 'Submission failed. Please wait a moment and try again.')
+                        return redirect('portfolio:contact')
+                except ValueError:
+                    logger.error(f"Invalid form_load_time format: {form_load_time_str}. IP: {request.META.get('REMOTE_ADDR')}")
+                    # Proceed cautiously or block, depending on policy
+            else:
+                logger.warning(f"form_load_time missing from submission. IP: {request.META.get('REMOTE_ADDR')}")
+                # Potentially suspicious, could block or just log
+
+            # 3. reCAPTCHA (if implemented)
+            # If using django-recaptcha, form.is_valid() would handle it if the field is in the form.
+            # No extra check needed here if captcha field is part of the form.
+
+            # --- Process Valid Submission ---
+            name = form.cleaned_data['name']
+            email_from = form.cleaned_data['email'] # User's email
+            subject = form.cleaned_data['subject']
+            message_body = form.cleaned_data['message'] # Sanitized by form's clean_message()
+
+            # Construct email
+            email_subject = f'Contact Form: {subject} (from {name})'
+            full_message_content = (
+                f"You have a new message from your portfolio contact form:\n\n"
+                f"From: {name}\n"
+                f"Email: {email_from}\n"
+                f"Subject: {subject}\n"
+                f"--------------------------------------------------\n"
+                f"Message:\n{message_body}\n"
+                f"--------------------------------------------------\n"
+                f"Submitted at: {timezone.now().strftime('%Y-%m-%d %H:%M:%S %Z')}\n"
+                f"Submitter IP: {request.META.get('REMOTE_ADDR')}\n"
+            )
+
+            try:
+                if not settings.EMAIL_HOST_USER or not settings.DEFAULT_FROM_EMAIL:
+                    logger.critical("Contact form submission failed: EMAIL_HOST_USER or DEFAULT_FROM_EMAIL not configured in settings.")
+                    messages.error(request, 'Could not send message due to a server configuration error. Please contact the site administrator directly.')
+                else:
+                    send_mail(
+                        subject=email_subject,
+                        message=full_message_content,
+                        from_email=settings.DEFAULT_FROM_EMAIL, # Should be an email address you control/verified with your ESP
+                        recipient_list=[settings.EMAIL_HOST_USER], # Your recipient email address
+                        # Optional: To make "Reply-To" go to the user's email:
+                        # html_message=None, # Or construct an HTML version
+                        # reply_to=[email_from] # Add this if your ESP supports it and you want it
+                        fail_silently=False,
+                    )
+                    logger.info(f"Contact form email sent successfully from {email_from} with subject: {subject}")
+                    messages.success(request, 'Your message has been sent successfully! Thank you for reaching out.')
+                    return redirect('portfolio:contact')
+            except smtplib.SMTPException as e:
+                logger.error(f"SMTP error sending contact form email: {e}", exc_info=True)
+                messages.error(request, 'An SMTP error occurred while sending your message. Please try again later or contact us directly.')
+            except Exception as e:
+                logger.error(f"General error sending contact form email: {e}", exc_info=True)
+                messages.error(request, 'An unexpected error occurred while sending your message. Please try again later.')
+        else:
+            logger.warning(f"Contact form validation failed. Errors: {form.errors.as_json()}. IP: {request.META.get('REMOTE_ADDR')}")
+            messages.error(request, 'There were errors in your submission. Please check the fields below.')
+    else:
+        form = ContactForm() # Instantiates with initial form_load_time
+
+    context = {
+        'form': form,
+        'page_title': 'Contact Me',
+        'meta_description': "Get in touch with me. Send a message via the contact form.",
+        'meta_keywords': "contact, email, message, get in touch, portfolio",
+    }
+    return render(request, 'portfolio/contact_page.html', context)
 
 def project_detail(request, slug):
     """ View function for a single project detail page. """
@@ -182,51 +286,51 @@ def all_projects_view(request):
     return render(request, 'portfolio/all_projects.html', context)
 
 
-def contact_view(request):
-    if request.method == 'POST':
-        form = ContactForm(request.POST)
-        if form.is_valid():
-            # Anti-spam: Check honeypot field
-            if form.cleaned_data.get('honeypot'):
-                messages.error(request, 'Spam detected.') # Or just ignore
-                return redirect('portfolio:contact') # Or render with error
+# def contact_view(request):
+#     if request.method == 'POST':
+#         form = ContactForm(request.POST)
+#         if form.is_valid():
+#             # Anti-spam: Check honeypot field
+#             if form.cleaned_data.get('honeypot'):
+#                 messages.error(request, 'Spam detected.') # Or just ignore
+#                 return redirect('portfolio:contact') # Or render with error
 
-            name = form.cleaned_data['name']
-            email = form.cleaned_data['email']
-            subject = form.cleaned_data['subject']
-            message_body = form.cleaned_data['message']
+#             name = form.cleaned_data['name']
+#             email = form.cleaned_data['email']
+#             subject = form.cleaned_data['subject']
+#             message_body = form.cleaned_data['message']
             
-            full_message = f"Message from: {name} ({email})\n\nSubject: {subject}\n\n{message_body}"
+#             full_message = f"Message from: {name} ({email})\n\nSubject: {subject}\n\n{message_body}"
             
-            try:
-                if not settings.EMAIL_HOST_USER: # Check if recipient email is configured
-                    logger.error("Contact form submission failed: EMAIL_HOST_USER not configured.")
-                    messages.error(request, 'Could not send message. Server configuration error.')
-                else:
-                    send_mail(
-                        f'Contact Form: {subject}',
-                        full_message,
-                        settings.DEFAULT_FROM_EMAIL, # Sender's email (from settings)
-                        [settings.EMAIL_HOST_USER], # Your recipient email address
-                        fail_silently=False,
-                    )
-                    messages.success(request, 'Message sent successfully! Thank you.')
-                    return redirect('portfolio:contact') # Redirect to clear form
-            except Exception as e:
-                logger.error(f"Email sending failed: {e}", exc_info=True)
-                messages.error(request, 'An error occurred while sending your message. Please try again later.')
-        else:
-            messages.error(request, 'Please correct the errors below.')
-    else:
-        form = ContactForm()
+#             try:
+#                 if not settings.EMAIL_HOST_USER: # Check if recipient email is configured
+#                     logger.error("Contact form submission failed: EMAIL_HOST_USER not configured.")
+#                     messages.error(request, 'Could not send message. Server configuration error.')
+#                 else:
+#                     send_mail(
+#                         f'Contact Form: {subject}',
+#                         full_message,
+#                         settings.DEFAULT_FROM_EMAIL, # Sender's email (from settings)
+#                         [settings.EMAIL_HOST_USER], # Your recipient email address
+#                         fail_silently=False,
+#                     )
+#                     messages.success(request, 'Message sent successfully! Thank you.')
+#                     return redirect('portfolio:contact') # Redirect to clear form
+#             except Exception as e:
+#                 logger.error(f"Email sending failed: {e}", exc_info=True)
+#                 messages.error(request, 'An error occurred while sending your message. Please try again later.')
+#         else:
+#             messages.error(request, 'Please correct the errors below.')
+#     else:
+#         form = ContactForm()
 
-    context = {
-        'form': form,
-        'page_title': 'Contact Me',
-        'meta_description': "Get in touch with me. Send a message via the contact form.",
-        'meta_keywords': "contact, email, message, get in touch, portfolio",
-    }
-    return render(request, 'portfolio/contact_page.html', context)
+#     context = {
+#         'form': form,
+#         'page_title': 'Contact Me',
+#         'meta_description': "Get in touch with me. Send a message via the contact form.",
+#         'meta_keywords': "contact, email, message, get in touch, portfolio",
+#     }
+#     return render(request, 'portfolio/contact_page.html', context)
 
 def about_me_view(request):
     context = {

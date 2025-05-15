@@ -47,15 +47,12 @@
 
 {% block content %}
 <div class="container mx-auto px-6 py-12">
-    {# Apply gradient text to heading #}
     <h1 class="text-4xl md:text-5xl font-bold text-center mb-12 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
-        {{ page_title }}
+        {{ page_title|default:"Contact Me" }}
     </h1>
 
-    {# Dark mode background/shadow #}
     <div class="max-w-2xl mx-auto bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg dark:shadow-blue-900/20 transition-colors duration-300 ease-in-out">
 
-        {# Display Django messages (success/error) - Already styled for dark mode #}
         {% if messages %}
             <div class="mb-6">
                 {% for message in messages %}
@@ -70,20 +67,20 @@
             </div>
         {% endif %}
 
-        <form method="post" action="{% url 'portfolio:contact' %}" novalidate>
-            {% csrf_token %} {# Important for security #}
+        <form method="post" action="{% url 'portfolio:contact' %}" novalidate id="contactForm">
+            {% csrf_token %}
 
             {# Honeypot field for basic spam protection #}
-            <div style="display:none;">
+            <div style="position: absolute; left: -5000px;" aria-hidden="true">
                  {{ form.honeypot }}
             </div>
+            {# Timestamp field #}
+            {{ form.form_load_time }}
+
 
             <div class="space-y-6">
-                {# Render form fields individually for better styling control #}
-                {# Add dark mode styles to labels and inputs (via JS block below or CSS) #}
                 <div>
-                    <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
-                    {# Input field - inherits base styles from forms.py widget attrs #}
+                    <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name <span class="text-red-500">*</span></label>
                     {{ form.name }}
                     {% if form.name.errors %}
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ form.name.errors|striptags }}</p>
@@ -91,7 +88,7 @@
                 </div>
 
                 <div>
-                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
+                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address <span class="text-red-500">*</span></label>
                     {{ form.email }}
                     {% if form.email.errors %}
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ form.email.errors|striptags }}</p>
@@ -99,7 +96,7 @@
                 </div>
 
                 <div>
-                    <label for="{{ form.subject.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject</label>
+                    <label for="{{ form.subject.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Subject <span class="text-red-500">*</span></label>
                     {{ form.subject }}
                     {% if form.subject.errors %}
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ form.subject.errors|striptags }}</p>
@@ -107,18 +104,30 @@
                 </div>
 
                 <div>
-                    <label for="{{ form.message.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Message</label>
+                    <label for="{{ form.message.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Message <span class="text-red-500">*</span></label>
                     {{ form.message }}
                     {% if form.message.errors %}
                         <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ form.message.errors|striptags }}</p>
                     {% endif %}
                 </div>
+
+                {# For reCAPTCHA - if you add it to your form #}
+                {% if form.captcha %}
+                <div>
+                    {{ form.captcha.label_tag }}
+                    {{ form.captcha }}
+                    {% if form.captcha.errors %}
+                        <p class="text-red-600 dark:text-red-400 text-sm mt-1">{{ form.captcha.errors|striptags }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+
             </div>
 
             <div class="mt-8 text-center">
-                {# Enhanced Button Styling - Added hover brightness/scale and focus ring #}
                 <button type="submit"
-                        class="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg shadow hover:shadow-md dark:hover:shadow-blue-900/40 transform hover:scale-[1.02] transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        id="submitContactForm"
+                        class="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg shadow hover:shadow-md dark:hover:shadow-blue-900/40 transform hover:scale-[1.02] transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-70 disabled:cursor-not-allowed">
                     Send Message
                 </button>
             </div>
@@ -131,52 +140,61 @@
 </div>
 {% endblock %}
 
-{# Script to apply dark mode classes to form fields generated by Django #}
 {% block extra_scripts %}
 {{ block.super }}
 <script>
+    // Your existing applyDarkModeToForms script
     function applyDarkModeToForms() {
         const isDarkMode = document.documentElement.classList.contains('dark');
-        // Target inputs/textarea based on the classes applied in forms.py
-        const formElements = document.querySelectorAll('input.w-full.px-4.py-2, textarea.w-full.px-4.py-2');
+        const formElements = document.querySelectorAll(
+            'input.w-full.px-4.py-2[type="text"], input.w-full.px-4.py-2[type="email"], textarea.w-full.px-4.py-2'
+        ); // More specific selectors
 
         formElements.forEach(el => {
-            // Base classes (ensure these match forms.py widget attrs)
             const baseClasses = ['w-full', 'px-4', 'py-2', 'border', 'rounded-lg', 'focus:outline-none', 'focus:ring-2'];
-            // Light mode specific classes
-            const lightClasses = ['border-gray-300', 'bg-white', 'text-gray-900', 'placeholder-gray-500', 'focus:ring-blue-500'];
-            // Dark mode specific classes
-            const darkClasses = ['dark:border-gray-600', 'dark:bg-gray-700', 'dark:text-gray-100', 'dark:placeholder-gray-400', 'dark:focus:ring-blue-400', 'dark:focus:border-blue-400']; // Added dark focus border
+            const lightModeSpecificClasses = ['border-gray-300', 'bg-white', 'text-gray-900', 'placeholder-gray-500', 'focus:ring-blue-500'];
+            const darkModeSpecificClasses = ['dark:border-gray-600', 'dark:bg-gray-700', 'dark:text-gray-100', 'dark:placeholder-gray-400', 'dark:focus:ring-blue-400', 'dark:focus:border-blue-400'];
 
             if (isDarkMode) {
-                el.classList.remove(...lightClasses);
-                el.classList.add(...darkClasses);
+                el.classList.remove(...lightModeSpecificClasses);
+                el.classList.add(...darkModeSpecificClasses);
             } else {
-                el.classList.remove(...darkClasses);
-                el.classList.add(...lightClasses);
+                el.classList.remove(...darkModeSpecificClasses);
+                el.classList.add(...lightModeSpecificClasses);
             }
-            // Ensure base classes remain
-            el.classList.add(...baseClasses);
+            // Ensure base classes that might have been removed are re-added
+            baseClasses.forEach(cls => {
+                if (!el.classList.contains(cls.split(':')[0])) { // Check for base class without dark: prefix
+                     el.classList.add(cls);
+                }
+            });
         });
     }
-
-    // Apply on initial load
     applyDarkModeToForms();
-
-    // Re-apply if theme changes
     const themeToggleBtn = document.getElementById('theme-toggle');
     if(themeToggleBtn) {
         themeToggleBtn.addEventListener('click', () => {
-            // Need a slight delay for the 'dark' class to be applied/removed from <html>
             setTimeout(applyDarkModeToForms, 50);
         });
     }
-    // Also consider system preference changes if not overridden by user
      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-        if (!localStorage.getItem('color-theme')) {
+        if (!localStorage.getItem('color-theme')) { // Only if user hasn't set a preference
             setTimeout(applyDarkModeToForms, 50);
         }
      });
 
+    // Prevent double submission
+    const contactForm = document.getElementById('contactForm');
+    const submitButton = document.getElementById('submitContactForm');
+
+    if (contactForm && submitButton) {
+        contactForm.addEventListener('submit', function() {
+            // Disable button to prevent multiple clicks
+            submitButton.disabled = true;
+            submitButton.innerText = 'Sending...'; // Optional: provide visual feedback
+            // Optionally, re-enable after a delay if submission fails client-side,
+            // but server-side validation and redirect is the primary guard.
+        });
+    }
 </script>
 {% endblock %}

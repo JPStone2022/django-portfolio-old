@@ -23,6 +23,8 @@ urllib3==2.4.0
 whitenoise==6.9.0
 django-markdownify
 psycopg2==2.9.10
+bleach
+django-ratelimit
 #pandas
 #statsmodels
 #sklearn
