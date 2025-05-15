@@ -98,10 +98,10 @@ def index(request):
     return render(request, 'portfolio/index.html', context)
 
 # If using django-ratelimit, you would import and use its decorator
-from django_ratelimit.decorators import ratelimit
+#from django_ratelimit.decorators import ratelimit
 
 # Example rate limit: 5 submissions per hour per IP for the contact form
-@ratelimit(key='ip', rate='5/h', block=True, method='POST')
+#@ratelimit(key='ip', rate='5/h', block=True, method='POST')
 def contact_view(request):
     if request.method == 'POST':
         form = ContactForm(request.POST)
