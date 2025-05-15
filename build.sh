@@ -13,7 +13,7 @@ echo "Dependencies installed."
 
 # Run collectstatic to gather static files into STATIC_ROOT
 echo "Running collectstatic..."
-python manage.py collectstatic --no-input
+python manage.py collectstatic --no-input --clear
 echo "Collectstatic finished."
 
 # Apply any outstanding database migrations
